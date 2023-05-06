@@ -32,21 +32,26 @@ describe("Chess Riddle", function () {
     const Token = await ethers.getContractFactory("VToken", owner);
     token = await Token.deploy();
     const ChessRiddle = await ethers.getContractFactory("ChessRiddle", owner);
-    chessRiddle = await ChessRiddle.deploy();
+    chessRiddle = await ChessRiddle.deploy("https://old.chesstempo.com/chess-problems/");
     const Question1 = await ethers.getContractFactory("Question1", owner);
     question1 = await Question1.deploy();
+    const Question2 = await ethers.getContractFactory("Question2", owner);
+    question2 = await Question2.deploy();
+    const Question3 = await ethers.getContractFactory("Question3", owner);
+    question3 = await Question3.deploy();
+    const ChessCompetition = await ethers.getContractFactory("ChessCompetition", owner);
+    chessCompetition = await ChessCompetition.deploy(token.address);
     
-
 })
 
   ////// Happy Path
-  it("Should deposit into the Vault", async () => {
+  it("Create a competition", async () => {
     await token.transfer(alice.address,parseEther(1 * 10**6));
     await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
     await vault.connect(alice).deposit(parseEther(500*10**3));
     expect(await token.balanceOf(vault.address)).equal(parseEther(500 * 10**3));
   });
-  it("Should withdraw", async () => {
+  it("Start a competition", async () => {
     //grant withdrawer role to Bob
     let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
     await vault.grantRole(WITHDRAWER_ROLE, bob.address);
@@ -67,13 +72,12 @@ describe("Chess Riddle", function () {
     expect(await token.balanceOf(vault.address)).equal(parseEther(200 * 10**3));
     expect(await token.balanceOf(alice.address)).equal(parseEther(800 * 10**3));
   });
-  ///////Unhappy Path/////////
-  it("Should not deposit, Insufficient account balance", async () => {
+  it("Join a competition", async () => {
     await token.transfer(alice.address,parseEther(1 * 10**6));
     await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
     await expect (vault.connect(alice).deposit(parseEther(2 * 10**6))).revertedWith('Insufficient account balance');
   });
-  it("Should not withdraw, Withdraw is not available ", async () => {
+  it("Answer the questions", async () => {
     //grant withdrawer role to Bob
     let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
     await vault.grantRole(WITHDRAWER_ROLE, bob.address);
@@ -92,7 +96,7 @@ describe("Chess Riddle", function () {
     await expect (vault.connect(bob).withdraw(parseEther(300*10**3),alice.address)).revertedWith('Withdraw is not available');
    
   });
-  it("Should not withdraw, Exceed maximum amount ", async () => {
+  it("Finish the qestions ", async () => {
     //grant withdrawer role to Bob
     let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
     await vault.grantRole(WITHDRAWER_ROLE, bob.address);
@@ -111,7 +115,7 @@ describe("Chess Riddle", function () {
     await expect (vault.connect(bob).withdraw(parseEther(2*10**3),alice.address)).revertedWith('Exceed maximum amount');
    
   });
-  it("Should not withdraw, Caller is not a withdrawer", async () => {
+  it("Check prize", async () => {
     //grant withdrawer role to Bob
     let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
     await vault.grantRole(WITHDRAWER_ROLE, bob.address);

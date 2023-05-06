@@ -18,8 +18,9 @@ contract ChessRiddle is ERC721Enumerable, Ownable, AccessControlEnumerable {
 
     event Mint(address to,uint256 riddleId);
 
-    constructor() ERC721("Chess Riddle", "CR") {
+    constructor(string memory url) ERC721("Chess Riddle", "CR") {
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _url = url;
     }
 
     function _baseURI()
@@ -49,14 +50,6 @@ contract ChessRiddle is ERC721Enumerable, Ownable, AccessControlEnumerable {
         }
         return (ids);
     }
-
-    
-
-    function setBaseUrl(string memory _newUrl) public onlyOwner
-    {
-        _url=_newUrl;
-    }
-
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, AccessControlEnumerable) returns (bool) {
         return super.supportsInterface(interfaceId);

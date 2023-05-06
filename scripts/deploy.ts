@@ -12,7 +12,6 @@ async function main() {
     console.log('VTken address: ', vToken.address);
     Config.setConfig(network + '.VToken', vToken.address);
 
-
     await Config.updateConfig();
     
 }
