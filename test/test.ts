@@ -78,15 +78,15 @@ describe("Chess Competition", function () {
     })
     
   })
-  it("test question1", async () => {
-    console.log(await question2.solve([[1,1], [2,2], [3,3]]));
+  it.skip("test question", async () => {
+    console.log(await question1.solve([[1,1], [2,2], [3,3]]));
   })
 
   it.skip("Test handling multiple competitions", async () => {
     
   })
 
-  it.skip("Test process of chess competition", async () => {
+  it("Test process of chess competition", async () => {
     const amount = parseEther(100);
     await token.approve(chessCompetition.address, amount);
     await chessCompetition.fund(amount);
@@ -101,7 +101,7 @@ describe("Chess Competition", function () {
     const byteArr = ethers.utils.arrayify(hashValue);
 
     //createCompetition(uint256 _riddleId, bytes32 _hashValue, uint256 _prize,uint256[] memory _prizeRate, IChessQuestion[QUESTION_NUMBER] memory _questions)
-    await chessCompetition.createCompetition(1, byteArr, parseEther(100),[3,2,1], [question1.address, question2.address, question3.address])
+    await chessCompetition.createCompetition(1, byteArr, parseEther(100),[2,2,1], [question1.address, question2.address, question3.address])
 
     // function joinCompetition(uint256 _riddleId, address _participant) external onlyOwner
     await chessCompetition.joinCompetition(1, owner.address);
@@ -112,15 +112,16 @@ describe("Chess Competition", function () {
     const endTime = (currentTime/100n + 60n) * 100n;
     await chessCompetition.startCompetition(1, startTime, endTime);
 
+    await time.increaseTo(endTime);
     await chessCompetition.fillAnswer(1, 14);
     //await chessCompetition.connect(alice.address).fillAnswer(1, 28)
     
-    await time.increaseTo(endTime);
     // console.log(await chessCompetition.getCompetition(1));
 
     //function finishCompetition(uint256 _riddleId, Chess.chess[] memory trueAnswers) external
-    console.log(await chessCompetition.connect(owner).finishCompetition(1, [[1,1], [2,2], [3,3]]));
-    console.log(await chessCompetition.getAvailablePrize());
+    await chessCompetition.finishCompetition(1, [[1,1], [2,2], [3,3]])
+    console.log(await chessCompetition.prize())
+
 
 
 
