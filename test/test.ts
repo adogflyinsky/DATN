@@ -11,7 +11,7 @@ function parseEther(amount: Number) {
   return ethers.utils.parseUnits(amount.toString(), 18);
 }
 
-describe("Chess Riddle", function () {
+describe("Chess Competition", function () {
   let owner: SignerWithAddress,
     alice: SignerWithAddress,
     bob: SignerWithAddress,
@@ -31,126 +31,68 @@ describe("Chess Riddle", function () {
     
     const Token = await ethers.getContractFactory("VToken", owner);
     token = await Token.deploy();
+    // await token.deployed();
     const ChessRiddle = await ethers.getContractFactory("ChessRiddle", owner);
     chessRiddle = await ChessRiddle.deploy("https://old.chesstempo.com/chess-problems/");
+    // await chessRiddle.deployed();
     const Question1 = await ethers.getContractFactory("Question1", owner);
     question1 = await Question1.deploy();
+    // await question1.deployed();
     const Question2 = await ethers.getContractFactory("Question2", owner);
     question2 = await Question2.deploy();
+    // await question2.deployed();
     const Question3 = await ethers.getContractFactory("Question3", owner);
     question3 = await Question3.deploy();
+    // await question3.deployed();
     const ChessCompetition = await ethers.getContractFactory("ChessCompetition", owner);
-    chessCompetition = await ChessCompetition.deploy(token.address);
-    
+    chessCompetition = await ChessCompetition.deploy(token.address, chessRiddle.address);
+    // await chessCompetition.deployed();
 })
+  describe.skip("Deployment", () => {
+    it("Should set the right owner", async () => {
+      expect(await token.owner()).to.equal(owner.address);
+      expect(await chessRiddle.owner()).to.equal(owner.address);
+      expect(await chessCompetition.owner()).to.equal(owner.address);
+    })
+  })
 
-  ////// Happy Path
-  it("Create a competition", async () => {
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await vault.connect(alice).deposit(parseEther(500*10**3));
-    expect(await token.balanceOf(vault.address)).equal(parseEther(500 * 10**3));
-  });
-  it("Start a competition", async () => {
-    //grant withdrawer role to Bob
-    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
-    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
+  describe.skip("Test fund function", () => {
+    it("Should send correct amount to contract", async () => {
+      const amount = parseEther(100);
+      await token.approve(chessCompetition.address, amount);
+      await chessCompetition.fund(amount);
+      expect(await token.balanceOf(chessCompetition.address)).to.equal(amount);
+    })
 
-    // setter vault functions
-
-    await vault.setWithdrawEnable(true);
-    await vault.setMaxWithdrawAmount(parseEther(1*10**6));
-
-    // alice deposit into the vault
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await vault.connect(alice).deposit(parseEther(500*10**3));
-
-    // bob withdraw into alice address
-    await vault.connect(bob).withdraw(parseEther(300*10**3),alice.address);
+  })
+  describe("Test mint a riddle", async () => {
     
-    expect(await token.balanceOf(vault.address)).equal(parseEther(200 * 10**3));
-    expect(await token.balanceOf(alice.address)).equal(parseEther(800 * 10**3));
-  });
-  it("Join a competition", async () => {
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await expect (vault.connect(alice).deposit(parseEther(2 * 10**6))).revertedWith('Insufficient account balance');
-  });
-  it("Answer the questions", async () => {
-    //grant withdrawer role to Bob
-    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
-    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
-
-    // setter vault functions
-
-    await vault.setWithdrawEnable(false);
-    await vault.setMaxWithdrawAmount(parseEther(1*10**6));
-
-    // alice deposit into the vault
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await vault.connect(alice).deposit(parseEther(500*10**3));
-
-    // bob withdraw into alice address
-    await expect (vault.connect(bob).withdraw(parseEther(300*10**3),alice.address)).revertedWith('Withdraw is not available');
-   
-  });
-  it("Finish the qestions ", async () => {
-    //grant withdrawer role to Bob
-    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
-    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
-
-    // setter vault functions
-
-    await vault.setWithdrawEnable(true);
-    await vault.setMaxWithdrawAmount(parseEther(1*10**3));
-
-    // alice deposit into the vault
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await vault.connect(alice).deposit(parseEther(500*10**3));
-
-    // bob withdraw into alice address
-    await expect (vault.connect(bob).withdraw(parseEther(2*10**3),alice.address)).revertedWith('Exceed maximum amount');
-   
-  });
-  it("Check prize", async () => {
-    //grant withdrawer role to Bob
-    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
-    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
-
-    // setter vault functions
-
-    await vault.setWithdrawEnable(true);
-    await vault.setMaxWithdrawAmount(parseEther(1*10**3));
-
-    // alice deposit into the vault
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await vault.connect(alice).deposit(parseEther(500*10**3));
-
-    // bob withdraw into alice address
-    await expect (vault.connect(carol).withdraw(parseEther(1*10**3),alice.address)).revertedWith('Caller is not a withdrawer');
-   
+    it("Should mint to owner", async () => {
+      await chessRiddle.mint(owner.address, 1);
+      expect(await chessRiddle.ownerOf(1)).to.equal(owner.address);
+    })
+    it("Shouldn't mint same riddle", async () => {
+      await chessRiddle.mint(owner.address, 1);
+      await expect(chessRiddle.mint(owner.address, 1)).revertedWith("ERC721: token already minted");
+    })
+    
   })
-  it("Should not withdraw, ERC20: transfer amount exceeds balance", async () => {
-    //grant withdrawer role to Bob
-    let WITHDRAWER_ROLE = keccak256(Buffer.from("WITHDRAWER_ROLE")).toString();
-    await vault.grantRole(WITHDRAWER_ROLE, bob.address);
 
-    // setter vault functions
+  it("Test chess competition", async () => {
+    const amount = parseEther(100);
+    await token.approve(chessCompetition.address, amount);
+    await chessCompetition.fund(amount);
 
-    await vault.setWithdrawEnable(true);
-    await vault.setMaxWithdrawAmount(parseEther(5*10**3));
+    await chessRiddle.mint(owner.address, 1);
+    await chessRiddle.approve(chessCompetition.address, 1);
+    // riddleId:1  answer: [[1,1], [2,2], [3,3]] hashValue: 0xb5672d6fe0207c1087edf51a6e4e0ef81074588064c998d54dcb6712b4bb69a6
 
-    // alice deposit into the vault
-    await token.transfer(alice.address,parseEther(1 * 10**6));
-    await token.connect(alice).approve(vault.address,token.balanceOf(alice.address));
-    await vault.connect(alice).deposit(parseEther(2*10**3));
+    // createCompetition(uint256 _riddleId, bytes32 _hashValue, uint256 _prize,IChessQuestion[3] memory _questions)
+    const hashValue = '0xb5672d6fe0207c1087edf51a6e4e0ef81074588064c998d54dcb6712b4bb69a6';
+    const byteArr = ethers.utils.arrayify(hashValue);
 
-    // bob withdraw into alice address
-    await expect (vault.connect(bob).withdraw(parseEther(3*10**3),alice.address)).revertedWith('ERC20: transfer amount exceeds balance');
-   
+    await chessCompetition.createCompetition(1, byteArr, parseEther(100), [question1.address, question2.address, question3.address])
   })
+
+
 });

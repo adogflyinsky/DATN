@@ -6,9 +6,10 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "openzeppelin-solidity/contracts/security/ReentrancyGuard.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 import "./ChessRiddle.sol";
 
-contract ChessCompetition is Ownable, ReentrancyGuard {
+contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
     ChessRiddle private chessRiddle;
     IERC20 private token;
     uint256 public totalPrize;
@@ -18,7 +19,7 @@ contract ChessCompetition is Ownable, ReentrancyGuard {
     mapping(address => uint256) public spendness;
     mapping(address => uint256) public prizeOfParticipant;
     // riddleId -> index in competition.
-    mapping(uint256 => uint256) competitionIndex;
+    mapping(uint256 => uint256) public competitionIndex;
 
     constructor(IERC20 _token, ChessRiddle _chessRiddle) {
         token = _token;
@@ -48,8 +49,19 @@ contract ChessCompetition is Ownable, ReentrancyGuard {
 
     error isNotParticipant(address);
 
-    function fund(uint256 _amount) external {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external override pure returns (bytes4) {
+        return
+            bytes4(
+                keccak256("onERC721Received(address,address,uint256,bytes)")
+            );
+    }
 
+    function fund(uint256 _amount) external {
         require(token.balanceOf(msg.sender) >= _amount, "Insufficient amount token to fund.");
         SafeERC20.safeTransferFrom(token, msg.sender, address(this), _amount);
         funding[msg.sender] += _amount;
