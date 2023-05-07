@@ -12,9 +12,8 @@ contract Question1 is IChessQuestion {
     function solve(Chess.chess[] memory answer) public pure returns (uint256) {
         uint256 answerLength = answer.length;
         uint256 result = 0;
-        require(answerLength % 2 == 0, "Wrong answer");
-        for (uint256 i=0; i < answerLength; i+=2) {
-            result += answer[0].piece * answer[0].index;
+        for (uint256 i=0; i < answerLength; i++) {
+            result += answer[i].piece * answer[i].index;
         }
         return result;
     }

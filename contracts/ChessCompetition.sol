@@ -8,6 +8,7 @@ import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "openzeppelin-solidity/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol";
 import "./ChessRiddle.sol";
+import "hardhat/console.sol";
 
 contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
     ChessRiddle private chessRiddle;
@@ -18,12 +19,19 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
     mapping(address => uint256) public funding;
     mapping(address => uint256) public spendness;
     mapping(address => uint256) public prizeOfParticipant;
+    
     // riddleId -> index in competition.
     mapping(uint256 => uint256) public competitionIndex;
 
+    
     constructor(IERC20 _token, ChessRiddle _chessRiddle) {
         token = _token;
         chessRiddle = _chessRiddle;
+    }
+
+    struct ParticipantToQuestion{
+        address participant;
+        uint256 questionIndex;
     }
 
     struct CompetitionInfo {
@@ -31,11 +39,13 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
         uint256 riddleId;
         bytes32 hashValue;
         uint256 prize;
-        
+        uint256[] prizeRate; 
         address[] participants;
+    
         IChessQuestion[QUESTION_NUMBER] questions;
-        uint256[QUESTION_NUMBER] answers;
-
+        bytes[QUESTION_NUMBER] answers;
+        address[QUESTION_NUMBER] winParticipants;
+        uint256 answeredNumber;
         uint256 seed;
 
         uint256 startTime;
@@ -46,7 +56,6 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
     event SetHashAnswer(uint256 riddleId, bytes32 hashValue);
     event SetQuestions(uint256 riddleId, uint256 numOfQuestions);
     event Funding(address investor, uint256 amount);
-
     error isNotParticipant(address);
 
     function onERC721Received(
@@ -67,13 +76,61 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
         funding[msg.sender] += _amount;
         totalPrize += _amount;
     }
-    
-    function isParticipant(uint256 _riddleId) public view returns(bool) {
+
+    function createCompetition(uint256 _riddleId, bytes32 _hashValue, uint256 _prize,uint256[] memory _prizeRate,
+                                IChessQuestion[QUESTION_NUMBER] memory _questions) public onlyOwner {
+
+        require(!riddleIsInCompetitions(_riddleId), "Riddle is in the competition");
+        require(competitionIndex[_riddleId] == 0, "This riddle is existing.");
+        require(_prizeRate.length <= QUESTION_NUMBER, "Not enough questions for participants.");
+        require(chessRiddle.getApproved(_riddleId) == address(this), "This contract must be approved to transfer the token");
+        address owner = chessRiddle.ownerOf(_riddleId);
+        require(funding[owner] - spendness[owner] >= _prize, "Insufficient fund to give prize to the competition.");
+
+        chessRiddle.safeTransferFrom(owner, address(this), _riddleId);
+        spendness[owner] += _prize;
+
+        CompetitionInfo memory _competition; 
+        _competition.owner = owner;
+        _competition.riddleId = _riddleId;
+        _competition.hashValue = _hashValue;
+        _competition.prize = _prize;
+        _competition.prizeRate = _prizeRate;
+        _competition.questions = _questions;
+
+        competitions.push(_competition);
+    }
+
+
+
+    function joinCompetition(uint256 _riddleId, address _participant) external onlyOwner {
+        require(riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
+        uint256 index = competitionIndex[_riddleId];
+        require(competitions[index].prizeRate.length > competitions[index].participants.length, "Have enough participants.");
+        require(!isParticipant(_riddleId, _participant), "This address is attend the competition.");
+        competitions[index].participants.push(_participant);
+    }
+
+
+    function startCompetition(uint256 _riddleId, uint256 _startTime, uint256 _endTime) external onlyOwner {
+        require(riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
+        require(block.timestamp <= _startTime, "Auction can not start");
+        require(_startTime < _endTime, "Auction can not end before it starts");
+        uint256 index = competitionIndex[_riddleId];
+        competitions[index].startTime = _startTime;
+        competitions[index].endTime = _endTime;
+        
+
+        // Use VRF to get random value for seed.
+        competitions[index].seed = 0;
+    }
+
+    function isParticipant(uint256 _riddleId, address _addr) public view returns(bool) {
         require(riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
         uint256 index = competitionIndex[_riddleId];
         address[] memory participants = competitions[index].participants;
         for (uint256 i=0; i < participants.length; i++) {
-            if (participants[i] == msg.sender) {
+            if (participants[i] == _addr) {
                 return true;
             }       
         }
@@ -90,87 +147,83 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
         }
         revert isNotParticipant(_addr);
     }
-
-    function fillAnswer(uint256 _riddleId, uint256 answer) external {
-        require(riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
-        uint256 questionIndex = getQuestion(_riddleId, msg.sender);
-        uint256 index = competitionIndex[_riddleId];
-        competitions[index].answers[questionIndex] = answer;
+    function _sumOfArray(uint256[] memory arr) private pure returns (uint256) {
+        uint256 sum = 0;
+        for (uint256 i=0; i < arr.length; i++) {
+            sum += arr[i];
+        }
+        return sum;
+    }
+    
+    function _swapAddress(address[] storage arr, uint256 i1, uint256 i2) private  {
+            address tmp = arr[i1];
+            arr[i1] = arr[i2];
+            arr[i2] = tmp;
     }
     
 
-
-    function createCompetition(uint256 _riddleId, bytes32 _hashValue, uint256 _prize,
-                                IChessQuestion[3] memory _questions) public onlyOwner {
-
-        require(!riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
-        require(competitionIndex[_riddleId] == 0, "This riddle is existing.");
-        require(chessRiddle.getApproved(_riddleId) == address(this), "This contract must be approved to transfer the token");
-        address owner = chessRiddle.ownerOf(_riddleId);
-        require(funding[owner] - spendness[owner] >= _prize, "Insufficient fund to give prize to the competition.");
-
-        chessRiddle.safeTransferFrom(owner, address(this), _riddleId);
-        spendness[owner] += _prize;
-
-        CompetitionInfo memory _competition; 
-        _competition.owner = owner;
-        _competition.riddleId = _riddleId;
-        _competition.hashValue = _hashValue;
-        _competition.prize = _prize;
-        _competition.questions = _questions;
-
-        competitions.push(_competition);
-
-    }
-
-
-
-    function joinCompetition(uint256 _riddleId, address _participant) external onlyOwner {
-        require(riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
-        uint256 index = competitionIndex[_riddleId];
-        require(QUESTION_NUMBER > competitions[index].participants.length, "Have enough participants.");
-        require(!isParticipant(_riddleId), "This address is attend the competition.");
-        competitions[index].participants.push(_participant);
-
-
-    }
-
-
-    function startCompetition(uint256 _riddleId, uint256 _startTime, uint256 _endTime) external onlyOwner {
-        require(riddleIsInCompetitions(_riddleId), "Riddle is not in the competition");
-        require(block.timestamp <= _startTime, "Auction can not start");
-        require(_startTime < _endTime, "Auction can not end before it starts");
-        uint256 index = competitionIndex[_riddleId];
-        competitions[index].startTime = _startTime;
-        competitions[index].endTime = _endTime;
-
-        // Use VRF to get random value for seed.
-        competitions[index].seed = 0;
-
-    }
-
-   
-    function finishCompetition(uint256 _riddleId, Chess.chess[] memory trueAnswers) external {
+    function fillAnswer(uint256 _riddleId, uint256 answer) external {
         CompetitionInfo memory competition = getCompetition(_riddleId);
-        require(competition.endTime > getTimestamp(), "You can not finish yet.");
+        require(
+            block.timestamp >= competition.startTime
+            && block.timestamp <= competition.endTime, 
+        "Out of competition time.");
+
+        uint256 index = competitionIndex[_riddleId];
+        uint256 newOrderOfParticipant = competition.answeredNumber;
+
+        for (uint256 i = newOrderOfParticipant; i < competition.participants.length; i++) {
+            if (msg.sender == competition.participants[i]) {
+
+                _swapAddress(competitions[index].participants, newOrderOfParticipant, i);
+                uint256 questionIndex = getQuestion(_riddleId, msg.sender);
+                competitions[index].answers[questionIndex] = abi.encode(answer, competitions[index].answeredNumber);
+                 competitions[index].answeredNumber ++;
+                return;
+            }
+
+        }
+        
+    }
+   
+    
+    function finishCompetition(uint256 _riddleId, Chess.chess[] memory trueAnswers) public {
+        CompetitionInfo memory competition = getCompetition(_riddleId);
+
+        require(competition.endTime <= getTimestamp(), "You cannot remove yet.");
         require(competition.hashValue == calculateHashValue(trueAnswers), "It's not right answer.");
+
         chessRiddle.safeTransferFrom(address(this), competition.owner, _riddleId);
 
-        for (uint i=0; i < competition.participants.length; i++) {
-            uint256 index = getQuestion(_riddleId, competition.participants[i]);   
-            if (competition.questions[index].check(trueAnswers, competition.answers[index])) {
-                prizeOfParticipant[competition.participants[i]] += competition.prize / competition.participants.length;
+        uint256 totalRate = _sumOfArray(competition.prizeRate);
+        uint256 rightAnswerCount = 0;
+        
+        for (uint256 i = 0; i < competition.participants.length; i++) {
+            address participant = competition.participants[i];
+            uint256 questionIndex = getQuestion(_riddleId, participant);
+            (uint256 answer, uint256 order) = abi.decode(competition.answers[questionIndex],(uint256, uint256));
+
+            if (competition.questions[questionIndex].check(trueAnswers, answer)){
+                competition.winParticipants[order] = participant;
             }
-        }
+       }
 
-        _removeCompetition(_riddleId);
+       for (uint256 i = 0; i < QUESTION_NUMBER; i++) {
+            address participant = competition.winParticipants[i];
+            
+            if (participant != address(0)) {
+                prizeOfParticipant[participant] += competition.prize * competition.prizeRate[rightAnswerCount] / totalRate ;
+                rightAnswerCount ++;
+            }
+       }
+        
+        _removeCompetition(_riddleId);   
     }
-
     
     function removeCompetition(uint256 _riddleId) external {
         CompetitionInfo memory competition = getCompetition(_riddleId);
-        require(competition.endTime > getTimestamp(), "You cannot remove yet.");
-        require(competition.owner == msg.sender, "You are not the owner of the riddle");
+        require(competition.endTime <= getTimestamp(), "You cannot remove yet.");
+        require(owner() == msg.sender, "You are not the owner of the competition.");
         _removeCompetition(_riddleId);
         
     }
@@ -192,8 +245,6 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
         return competition;
     }
 
-    // participants, questions, seed, answers
-
     function calculateHashValue(Chess.chess[] memory trueAnswers) public pure returns(bytes32) {
         return keccak256(abi.encode(trueAnswers));
     }
@@ -213,11 +264,6 @@ contract ChessCompetition is IERC721Receiver, Ownable, ReentrancyGuard {
         if (competitions[0].riddleId == _riddleId) {
             return true;
         }
-
         return false;
-
     }
-
-
-
 }

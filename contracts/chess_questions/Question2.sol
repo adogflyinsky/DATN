@@ -6,15 +6,14 @@ import { Chess } from "../libraries/Chess.sol";
 contract Question2 is IChessQuestion {
 
     function description() external pure returns (string memory) {
-        return "Solving question by calculate sum of (index * position) of pieces. .";
+        return "Solving question by calculate sum of (piece^2 + position^2) of pieces. .";
     }
 
     function solve(Chess.chess[] memory answer) public pure returns (uint256) {
         uint256 answerLength = answer.length;
         uint256 result = 0;
-        require(answerLength % 2 == 0, "Wrong answer");
-        for (uint256 i=0; i < answerLength; i+=2) {
-            result += answer[0].piece * answer[0].index;
+        for (uint256 i=0; i < answerLength; i++) {
+            result += answer[i].piece ** 2 + answer[i].index ** 2;
         }
         return result;
     }

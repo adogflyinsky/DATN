@@ -45,6 +45,7 @@ export declare namespace ChessCompetition {
     riddleId: PromiseOrValue<BigNumberish>;
     hashValue: PromiseOrValue<BytesLike>;
     prize: PromiseOrValue<BigNumberish>;
+    prizeRate: PromiseOrValue<BigNumberish>[];
     participants: PromiseOrValue<string>[];
     questions: [
       PromiseOrValue<string>,
@@ -56,6 +57,7 @@ export declare namespace ChessCompetition {
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BigNumberish>
     ];
+    answeredNumber: PromiseOrValue<BigNumberish>;
     seed: PromiseOrValue<BigNumberish>;
     startTime: PromiseOrValue<BigNumberish>;
     endTime: PromiseOrValue<BigNumberish>;
@@ -66,9 +68,11 @@ export declare namespace ChessCompetition {
     BigNumber,
     string,
     BigNumber,
+    BigNumber[],
     string[],
     [string, string, string],
     [BigNumber, BigNumber, BigNumber],
+    BigNumber,
     BigNumber,
     BigNumber,
     BigNumber
@@ -77,9 +81,11 @@ export declare namespace ChessCompetition {
     riddleId: BigNumber;
     hashValue: string;
     prize: BigNumber;
+    prizeRate: BigNumber[];
     participants: string[];
     questions: [string, string, string];
     answers: [BigNumber, BigNumber, BigNumber];
+    answeredNumber: BigNumber;
     seed: BigNumber;
     startTime: BigNumber;
     endTime: BigNumber;
@@ -92,7 +98,7 @@ export interface ChessCompetitionInterface extends utils.Interface {
     "calculateHashValue((uint8,uint8)[])": FunctionFragment;
     "competitionIndex(uint256)": FunctionFragment;
     "competitions(uint256)": FunctionFragment;
-    "createCompetition(uint256,bytes32,uint256,address[3])": FunctionFragment;
+    "createCompetition(uint256,bytes32,uint256,uint256[],address[3])": FunctionFragment;
     "fillAnswer(uint256,uint256)": FunctionFragment;
     "finishCompetition(uint256,(uint8,uint8)[])": FunctionFragment;
     "fund(uint256)": FunctionFragment;
@@ -100,7 +106,7 @@ export interface ChessCompetitionInterface extends utils.Interface {
     "getCompetition(uint256)": FunctionFragment;
     "getQuestion(uint256,address)": FunctionFragment;
     "getTimestamp()": FunctionFragment;
-    "isParticipant(uint256)": FunctionFragment;
+    "isParticipant(uint256,address)": FunctionFragment;
     "joinCompetition(uint256,address)": FunctionFragment;
     "onERC721Received(address,address,uint256,bytes)": FunctionFragment;
     "owner()": FunctionFragment;
@@ -164,6 +170,7 @@ export interface ChessCompetitionInterface extends utils.Interface {
       PromiseOrValue<BigNumberish>,
       PromiseOrValue<BytesLike>,
       PromiseOrValue<BigNumberish>,
+      PromiseOrValue<BigNumberish>[],
       [PromiseOrValue<string>, PromiseOrValue<string>, PromiseOrValue<string>]
     ]
   ): string;
@@ -197,7 +204,7 @@ export interface ChessCompetitionInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "isParticipant",
-    values: [PromiseOrValue<BigNumberish>]
+    values: [PromiseOrValue<BigNumberish>, PromiseOrValue<string>]
   ): string;
   encodeFunctionData(
     functionFragment: "joinCompetition",
@@ -434,12 +441,14 @@ export interface ChessCompetition extends BaseContract {
         BigNumber,
         BigNumber,
         BigNumber,
+        BigNumber,
         BigNumber
       ] & {
         owner: string;
         riddleId: BigNumber;
         hashValue: string;
         prize: BigNumber;
+        answeredNumber: BigNumber;
         seed: BigNumber;
         startTime: BigNumber;
         endTime: BigNumber;
@@ -450,6 +459,7 @@ export interface ChessCompetition extends BaseContract {
       _riddleId: PromiseOrValue<BigNumberish>,
       _hashValue: PromiseOrValue<BytesLike>,
       _prize: PromiseOrValue<BigNumberish>,
+      _prizeRate: PromiseOrValue<BigNumberish>[],
       _questions: [
         PromiseOrValue<string>,
         PromiseOrValue<string>,
@@ -495,6 +505,7 @@ export interface ChessCompetition extends BaseContract {
 
     isParticipant(
       _riddleId: PromiseOrValue<BigNumberish>,
+      _addr: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<[boolean]>;
 
@@ -569,11 +580,21 @@ export interface ChessCompetition extends BaseContract {
     arg0: PromiseOrValue<BigNumberish>,
     overrides?: CallOverrides
   ): Promise<
-    [string, BigNumber, string, BigNumber, BigNumber, BigNumber, BigNumber] & {
+    [
+      string,
+      BigNumber,
+      string,
+      BigNumber,
+      BigNumber,
+      BigNumber,
+      BigNumber,
+      BigNumber
+    ] & {
       owner: string;
       riddleId: BigNumber;
       hashValue: string;
       prize: BigNumber;
+      answeredNumber: BigNumber;
       seed: BigNumber;
       startTime: BigNumber;
       endTime: BigNumber;
@@ -584,6 +605,7 @@ export interface ChessCompetition extends BaseContract {
     _riddleId: PromiseOrValue<BigNumberish>,
     _hashValue: PromiseOrValue<BytesLike>,
     _prize: PromiseOrValue<BigNumberish>,
+    _prizeRate: PromiseOrValue<BigNumberish>[],
     _questions: [
       PromiseOrValue<string>,
       PromiseOrValue<string>,
@@ -629,6 +651,7 @@ export interface ChessCompetition extends BaseContract {
 
   isParticipant(
     _riddleId: PromiseOrValue<BigNumberish>,
+    _addr: PromiseOrValue<string>,
     overrides?: CallOverrides
   ): Promise<boolean>;
 
@@ -710,12 +733,14 @@ export interface ChessCompetition extends BaseContract {
         BigNumber,
         BigNumber,
         BigNumber,
+        BigNumber,
         BigNumber
       ] & {
         owner: string;
         riddleId: BigNumber;
         hashValue: string;
         prize: BigNumber;
+        answeredNumber: BigNumber;
         seed: BigNumber;
         startTime: BigNumber;
         endTime: BigNumber;
@@ -726,6 +751,7 @@ export interface ChessCompetition extends BaseContract {
       _riddleId: PromiseOrValue<BigNumberish>,
       _hashValue: PromiseOrValue<BytesLike>,
       _prize: PromiseOrValue<BigNumberish>,
+      _prizeRate: PromiseOrValue<BigNumberish>[],
       _questions: [
         PromiseOrValue<string>,
         PromiseOrValue<string>,
@@ -771,6 +797,7 @@ export interface ChessCompetition extends BaseContract {
 
     isParticipant(
       _riddleId: PromiseOrValue<BigNumberish>,
+      _addr: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<boolean>;
 
@@ -881,6 +908,7 @@ export interface ChessCompetition extends BaseContract {
       _riddleId: PromiseOrValue<BigNumberish>,
       _hashValue: PromiseOrValue<BytesLike>,
       _prize: PromiseOrValue<BigNumberish>,
+      _prizeRate: PromiseOrValue<BigNumberish>[],
       _questions: [
         PromiseOrValue<string>,
         PromiseOrValue<string>,
@@ -926,6 +954,7 @@ export interface ChessCompetition extends BaseContract {
 
     isParticipant(
       _riddleId: PromiseOrValue<BigNumberish>,
+      _addr: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -1006,6 +1035,7 @@ export interface ChessCompetition extends BaseContract {
       _riddleId: PromiseOrValue<BigNumberish>,
       _hashValue: PromiseOrValue<BytesLike>,
       _prize: PromiseOrValue<BigNumberish>,
+      _prizeRate: PromiseOrValue<BigNumberish>[],
       _questions: [
         PromiseOrValue<string>,
         PromiseOrValue<string>,
@@ -1051,6 +1081,7 @@ export interface ChessCompetition extends BaseContract {
 
     isParticipant(
       _riddleId: PromiseOrValue<BigNumberish>,
+      _addr: PromiseOrValue<string>,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

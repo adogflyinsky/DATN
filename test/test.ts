@@ -2,6 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Contract } from '@ethersproject/contracts';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import * as chai from "chai";
 const chaiAsPromised = require('chai-as-promised');
 chai.use(chaiAsPromised);
@@ -27,28 +28,28 @@ describe("Chess Competition", function () {
   beforeEach(async () => {
     await ethers.provider.send("hardhat_reset", []);
     [owner, alice, bob, carol] = await ethers.getSigners();
+    const provider = new ethers.providers.JsonRpcProvider();
 
-    
     const Token = await ethers.getContractFactory("VToken", owner);
     token = await Token.deploy();
-    // await token.deployed();
+
     const ChessRiddle = await ethers.getContractFactory("ChessRiddle", owner);
     chessRiddle = await ChessRiddle.deploy("https://old.chesstempo.com/chess-problems/");
-    // await chessRiddle.deployed();
+
     const Question1 = await ethers.getContractFactory("Question1", owner);
     question1 = await Question1.deploy();
-    // await question1.deployed();
+
     const Question2 = await ethers.getContractFactory("Question2", owner);
     question2 = await Question2.deploy();
-    // await question2.deployed();
+
     const Question3 = await ethers.getContractFactory("Question3", owner);
     question3 = await Question3.deploy();
-    // await question3.deployed();
+
     const ChessCompetition = await ethers.getContractFactory("ChessCompetition", owner);
     chessCompetition = await ChessCompetition.deploy(token.address, chessRiddle.address);
-    // await chessCompetition.deployed();
+
 })
-  describe.skip("Deployment", () => {
+  describe("Deployment", () => {
     it("Should set the right owner", async () => {
       expect(await token.owner()).to.equal(owner.address);
       expect(await chessRiddle.owner()).to.equal(owner.address);
@@ -65,7 +66,7 @@ describe("Chess Competition", function () {
     })
 
   })
-  describe("Test mint a riddle", async () => {
+  describe.skip("Test mint a riddle", () => {
     
     it("Should mint to owner", async () => {
       await chessRiddle.mint(owner.address, 1);
@@ -77,21 +78,55 @@ describe("Chess Competition", function () {
     })
     
   })
+  it("test question1", async () => {
+    console.log(await question2.solve([[1,1], [2,2], [3,3]]));
+  })
 
-  it("Test chess competition", async () => {
+  it.skip("Test handling multiple competitions", async () => {
+    
+  })
+
+  it.skip("Test process of chess competition", async () => {
     const amount = parseEther(100);
     await token.approve(chessCompetition.address, amount);
     await chessCompetition.fund(amount);
 
     await chessRiddle.mint(owner.address, 1);
+  
     await chessRiddle.approve(chessCompetition.address, 1);
     // riddleId:1  answer: [[1,1], [2,2], [3,3]] hashValue: 0xb5672d6fe0207c1087edf51a6e4e0ef81074588064c998d54dcb6712b4bb69a6
 
-    // createCompetition(uint256 _riddleId, bytes32 _hashValue, uint256 _prize,IChessQuestion[3] memory _questions)
+
     const hashValue = '0xb5672d6fe0207c1087edf51a6e4e0ef81074588064c998d54dcb6712b4bb69a6';
     const byteArr = ethers.utils.arrayify(hashValue);
 
-    await chessCompetition.createCompetition(1, byteArr, parseEther(100), [question1.address, question2.address, question3.address])
+    //createCompetition(uint256 _riddleId, bytes32 _hashValue, uint256 _prize,uint256[] memory _prizeRate, IChessQuestion[QUESTION_NUMBER] memory _questions)
+    await chessCompetition.createCompetition(1, byteArr, parseEther(100),[3,2,1], [question1.address, question2.address, question3.address])
+
+    // function joinCompetition(uint256 _riddleId, address _participant) external onlyOwner
+    await chessCompetition.joinCompetition(1, owner.address);
+    await chessCompetition.joinCompetition(1, carol.address);
+
+    const currentTime = BigInt(await chessCompetition.getTimestamp());
+    const startTime = (currentTime/100n + 30n) * 100n;
+    const endTime = (currentTime/100n + 60n) * 100n;
+    await chessCompetition.startCompetition(1, startTime, endTime);
+
+    await chessCompetition.fillAnswer(1, 14);
+    //await chessCompetition.connect(alice.address).fillAnswer(1, 28)
+    
+    await time.increaseTo(endTime);
+    // console.log(await chessCompetition.getCompetition(1));
+
+    //function finishCompetition(uint256 _riddleId, Chess.chess[] memory trueAnswers) external
+    console.log(await chessCompetition.connect(owner).finishCompetition(1, [[1,1], [2,2], [3,3]]));
+    console.log(await chessCompetition.getAvailablePrize());
+
+
+
+
+
+
   })
 
 
