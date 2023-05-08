@@ -6,7 +6,8 @@
     "question1": "0x3B5A5250434b2E8BadF30586E09548872B3F4530",
     "question2": "0xb76BBe0caAdd92fca11e8e691a80Aa9EF8Cf3008",
     "question3": "0x2BD737E889cdb28028983a6D2A81DF0FacBA8E38",
-    "chessCompetition": "0xbF29986f294F2Bbfc2c7Dc56e72aB91c921e007B"
+    "chessCompetition": "0xbF29986f294F2Bbfc2c7Dc56e72aB91c921e007B",
+    "updateChessCompetition": "0x16E4d49b65dcE4aD3784293Cb9A87eBcA555c3C6"
   },
   "main": {}
 }
