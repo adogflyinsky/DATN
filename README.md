@@ -9,7 +9,7 @@ With a third-party available website serving chess players and available data, i
 ### How to solve:
 With the contest to find the optimal move, there is always only 1 correct answer, and the moves depend on the pieces and the position of the board. We can encode each move based on that. Specifically, with the pawn, rook, horse, net, queen, and king pieces numbered in the order from 0 to 5 and the chessboard from position a1 to position h8, we number in order from 1 to 64. So the answer will be an array of moves. To ensure transparency, just announcing the winners without proof is not convincing enough, but if the answers are announced early, the game will end. Here, the proposed solution is based on ZKP: The organizer will hold the contests at the same time and create the corresponding contract for the players to participate and enter the results into the contract in the form of ZKP. (do not enter results directly).
 - Implementation steps:
-1. Create questions in the form of smart contract (unlimited number of questions can be created, see examples in [folder](./contracts/chess_questions/))
+1. Create questions in the form of smart contract (unlimited number of questions is created, see examples in [file](./contracts/QuestionSet.sol))
 2. Each question is created in nft format, with a link to the corresponding contest. The answer is available in the organizer's database.
 3. The organizer will base on the contest id and use keccak to hash the answer and create the corresponding contest.
 4. Players will participate and each person will randomly receive different questions and answer questions during the competition. (can check the real answer before filling in by comparing with the hash code provided earlier)
